@@ -1,53 +1,78 @@
 MODULE = {
-    "code": "leave_cell", "label": "Leave Management", "icon": "CalendarBlank",
-    "base_path": "/leave", "nav_section": "Leave", "sort_order": 20,
+    "code": "leave",
+    "label": "Employee Leave",
+    "icon": "FaCalendarAlt",
+    "base_path": "/leave",
+    "nav_section": "HR",
+    "sort_order": 25,
     "status": "active",
 }
 
 NAV_ITEMS = [
-    {"code": "leave.applications", "label": "Leave Applications",
-     "icon": "Users", "to": "/leave/applications",
-     "required_permission": "leave_cell.application.view", "sort_order": 10},
-    {"code": "leave.offers", "label": "Leave Offers",
-     "icon": "Signature", "to": "/leave/offers",
-     "required_permission": "leave_cell.offer.respond", "sort_order": 20},
+    {
+        "code": "leave.apply",
+        "label": "Apply for Leave",
+        "icon": "FaClipboardList",
+        "to": "/leave/apply",
+        "required_permission": "leave.application.apply",
+        "sort_order": 10,
+    },
+    {
+        "code": "leave.my_leaves",
+        "label": "My Leaves & Balances",
+        "icon": "FaCalendarAlt",
+        "to": "/leave/my-leaves",
+        "required_permission": "leave.application.view_self",
+        "sort_order": 20,
+    },
+    {
+        "code": "leave.substitute_inbox",
+        "label": "Substitute Requests",
+        "icon": "FaUsers",
+        "to": "/leave/substitute",
+        "required_permission": "leave.application.view_self",
+        "sort_order": 30,
+    },
+    {
+        "code": "leave.reviews",
+        "label": "Approval Queue",
+        "icon": "FaClipboardCheck",
+        "to": "/leave/reviews",
+        "required_permission": "leave.application.review",
+        "sort_order": 40,
+    },
 ]
 
 PERMISSIONS = [
-    ("leave_cell.application.view", "See all leave applications"),
-    ("leave_cell.application.create", "Apply for leave"),
-    ("leave_cell.application.review", "Shortlist and reject leave applications"),
-    ("leave_cell.application.delete", "Withdraw a leave application"),
-    ("leave_cell.application.auto_withdraw", "System auto-withdrawal"),
-    ("leave_cell.offer.respond", "Accept or decline a leave offer"),
+    ("leave.application.apply", "Apply for institute employee leave"),
+    ("leave.application.view_self", "View own leave applications, balances, and history"),
+    ("leave.application.review", "Review, recommend, and sanction employee leave applications"),
+    ("leave.admin.manage", "Manage leave policies, holiday calendars, and offline synchronization"),
 ]
 
-SYSTEM_PERMISSIONS = [
-    "leave_cell.application.auto_withdraw",
+SYSTEM_PERMISSIONS = []
+
+_EMPLOYEE = [
+    "leave.application.apply",
+    "leave.application.view_self",
 ]
 
-_STUDENT = [
-    "leave_cell.application.create",
+_APPROVER = [
+    *_EMPLOYEE,
+    "leave.application.review",
 ]
 
-_COORDINATOR = [
-    "leave_cell.application.view",
-    "leave_cell.application.review",
-]
-
-_OFFICER = [
-    *_COORDINATOR,
-    "leave_cell.application.create",
-    "leave_cell.offer.respond",
-]
-
-_CHAIRMAN = [
-    "leave_cell.application.view",
+_ADMIN = [
+    *_APPROVER,
+    "leave.admin.manage",
 ]
 
 ROLE_GRANTS = {
-    "student": _STUDENT,
-    "leave_coordinator": _COORDINATOR,
-    "leave_officer": _OFFICER,
-    "leave_chairman": _CHAIRMAN,
+    "faculty": _EMPLOYEE,
+    "staff": _EMPLOYEE,
+    "unit_head": _APPROVER,
+    "hod": _APPROVER,
+    "dean": _APPROVER,
+    "director": _APPROVER,
+    "leave_admin": _ADMIN,
 }

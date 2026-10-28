@@ -113,3 +113,45 @@ def test_substitute_validation():
     with pytest.raises(ValidationError) as exc:
         validate_leave_application(app)
     assert "substitute_id" in exc.value.message_dict
+
+
+@pytest.mark.django_db
+def test_missing_dates_and_station_leave_validation():
+    # Missing start_date
+    app1 = LeaveApplication(
+        user_id=106,
+        category=LeaveCategory.CL,
+        start_date=None,
+        end_date=date(2026, 11, 17),
+        status=LeaveStatus.SUBMITTED,
+    )
+    with pytest.raises(ValidationError) as exc1:
+        validate_leave_application(app1)
+    assert "start_date" in exc1.value.message_dict
+
+    # Inverted date range
+    app2 = LeaveApplication(
+        user_id=106,
+        category=LeaveCategory.CL,
+        start_date=date(2026, 11, 18),
+        end_date=date(2026, 11, 17),
+        status=LeaveStatus.SUBMITTED,
+    )
+    with pytest.raises(ValidationError) as exc2:
+        validate_leave_application(app2)
+    assert "start_date" in exc2.value.message_dict
+
+    # Station leave applied without address or contact
+    app3 = LeaveApplication(
+        user_id=106,
+        category=LeaveCategory.CL,
+        start_date=date(2026, 11, 17),
+        end_date=date(2026, 11, 17),
+        station_leave_applied=True,
+        station_leave_address="",
+        station_leave_contact="",
+        status=LeaveStatus.SUBMITTED,
+    )
+    with pytest.raises(ValidationError) as exc3:
+        validate_leave_application(app3)
+    assert "station_leave_address" in exc3.value.message_dict

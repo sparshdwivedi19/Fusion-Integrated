@@ -24,9 +24,11 @@ export default function MyLeavesPage() {
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
+    setPageError(null);
     try {
       const [balData, appData] = await Promise.all([
         leaveApi.getBalances(),
@@ -36,6 +38,7 @@ export default function MyLeavesPage() {
       setApplications(appData);
     } catch (err) {
       console.error("Failed to load leave records", err);
+      setPageError("Unable to load leave records. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -47,11 +50,13 @@ export default function MyLeavesPage() {
 
   const handleWithdraw = async (id: number) => {
     if (!confirm("Are you sure you want to withdraw this pending leave request?")) return;
+    setPageError(null);
     try {
       await leaveApi.withdrawApplication(id);
       loadData();
     } catch (err: any) {
-      alert("Failed to withdraw application.");
+      const msg = err.response?.data?.error?.message || "Failed to withdraw application.";
+      setPageError(msg);
     }
   };
 
@@ -94,6 +99,12 @@ export default function MyLeavesPage() {
           + Apply for Leave
         </Button>
       </Group>
+
+      {pageError && (
+        <Alert color="red" withCloseButton onClose={() => setPageError(null)}>
+          {pageError}
+        </Alert>
+      )}
 
       {/* Balance Cards */}
       <SimpleGrid cols={{ base: 2, sm: 3, md: 6 }}>

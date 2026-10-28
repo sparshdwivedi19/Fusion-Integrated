@@ -48,6 +48,18 @@ def _get_principal_id(request) -> int:
     return int(request.principal.user_id)
 
 
+def _parse_year_param(val, default_year: int) -> int:
+    if val is None or val == "":
+        return default_year
+    try:
+        parsed = int(val)
+        if 1900 <= parsed <= 2100:
+            return parsed
+    except (ValueError, TypeError):
+        pass
+    raise ValidationError({"year": "Year must be a valid 4-digit integer between 1900 and 2100."})
+
+
 class LeaveApplicationListCreateView(APIView):
     serializer_class = LeaveApplicationSerializer
 
@@ -320,7 +332,7 @@ class LeaveBalancesView(APIView):
     @extend_schema(responses={200: LeaveBalanceSerializer(many=True)})
     def get(self, request):
         user_id = _get_principal_id(request)
-        year = int(request.query_params.get("year", timezone.now().year))
+        year = _parse_year_param(request.query_params.get("year"), timezone.now().year)
         credit_annual_entitlements(user_id, year, is_faculty=True)
         balances = LeaveBalance.objects.filter(user_id=user_id, year=year).order_by("category")
         return Response(LeaveBalanceSerializer(balances, many=True).data)
@@ -328,7 +340,7 @@ class LeaveBalancesView(APIView):
     @extend_schema(request=None, responses={200: None})
     def post(self, request):
         user_id = _get_principal_id(request)
-        year = int(request.data.get("year", timezone.now().year))
+        year = _parse_year_param(request.data.get("year"), timezone.now().year)
         is_faculty = bool(request.data.get("is_faculty", True))
         results = credit_annual_entitlements(user_id, year, is_faculty=is_faculty)
         return Response({"status": "seeded", "year": year, "balances": results})
@@ -339,6 +351,6 @@ class HolidayCalendarView(APIView):
 
     @extend_schema(responses={200: HolidayCalendarSerializer(many=True)})
     def get(self, request):
-        year = int(request.query_params.get("year", timezone.now().year))
+        year = _parse_year_param(request.query_params.get("year"), timezone.now().year)
         holidays = HolidayCalendar.objects.filter(year=year)
         return Response(HolidayCalendarSerializer(holidays, many=True).data)

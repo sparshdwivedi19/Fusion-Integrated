@@ -164,7 +164,11 @@ def validate_leave_application(app) -> None:
     """
     from modules.leave.models import HalfDaySlot
 
-    if app.start_date and app.end_date and app.start_date > app.end_date:
+    if not app.start_date:
+        raise ValidationError({"start_date": _("Start date is required.")})
+    if not app.end_date:
+        raise ValidationError({"end_date": _("End date is required.")})
+    if app.start_date > app.end_date:
         raise ValidationError({
             "start_date": _("Start date must be on or before end date.")
         })

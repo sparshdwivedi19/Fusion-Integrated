@@ -56,7 +56,15 @@ def debit_balance(user_id: int, year: int, category: str, days: Decimal) -> Leav
     """
     Deducts leave days from available balance upon final approval.
     """
-    balance = ensure_balance(user_id, year, category)
+    if days <= Decimal("0.0"):
+        raise ValidationError({"days": _("Days to debit must be greater than zero.")})
+
+    ensure_balance(user_id, year, category)
+    balance = LeaveBalance.objects.select_for_update().get(
+        user_id=user_id,
+        year=year,
+        category=category,
+    )
     if Decimal(str(balance.available_balance)) < days:
         raise ValidationError({
             "balance": _(f"Insufficient {category} balance. Available: {balance.available_balance}, Requested: {days}")
@@ -71,7 +79,15 @@ def refund_balance(user_id: int, year: int, category: str, days: Decimal) -> Lea
     """
     Restores leave days upon cancellation or resumption adjustment.
     """
-    balance = ensure_balance(user_id, year, category)
+    if days <= Decimal("0.0"):
+        raise ValidationError({"days": _("Days to refund must be greater than zero.")})
+
+    ensure_balance(user_id, year, category)
+    balance = LeaveBalance.objects.select_for_update().get(
+        user_id=user_id,
+        year=year,
+        category=category,
+    )
     balance.availed = max(Decimal("0.0"), balance.availed - days)
     balance.save(update_fields=["availed"])
     return balance

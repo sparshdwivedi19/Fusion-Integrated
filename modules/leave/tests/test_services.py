@@ -175,3 +175,41 @@ def test_withdrawal_and_cancellation():
 
     bal_after = LeaveBalance.objects.get(user_id=applicant_id, year=year, category=LeaveCategory.CL).available_balance
     assert bal_after == 8.0
+
+
+@pytest.mark.django_db
+def test_ledger_positive_days_and_workflow_guards():
+    user_id = 505
+    year = 2026
+    credit_annual_entitlements(user_id, year)
+
+    # 1. Non-positive days to debit/refund
+    with pytest.raises(ValidationError) as exc1:
+        debit_balance(user_id, year, LeaveCategory.CL, Decimal("0.0"))
+    assert "days" in exc1.value.message_dict
+
+    with pytest.raises(ValidationError) as exc2:
+        refund_balance(user_id, year, LeaveCategory.CL, Decimal("-1.0"))
+    assert "days" in exc2.value.message_dict
+
+    # 2. Resumption missing date or before leave start date
+    app = LeaveApplication.objects.create(
+        user_id=user_id,
+        category=LeaveCategory.CL,
+        start_date=date(2026, 12, 15),
+        end_date=date(2026, 12, 16),
+        calculated_days=Decimal("2.0"),
+        status=LeaveStatus.APPROVED,
+    )
+    with pytest.raises(ValidationError) as exc_missing:
+        submit_resumption(app, actor_id=user_id, actual_date=None)
+    assert "actual_resumption_date" in exc_missing.value.message_dict
+
+    with pytest.raises(ValidationError) as exc3:
+        submit_resumption(app, actor_id=user_id, actual_date=date(2026, 12, 14))
+    assert "actual_resumption_date" in exc3.value.message_dict
+
+    # 3. Cancellation without reason
+    with pytest.raises(ValidationError) as exc4:
+        cancel_approved_leave(app, actor_id=user_id, reason="   ")
+    assert "reason" in exc4.value.message_dict

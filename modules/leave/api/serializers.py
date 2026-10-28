@@ -93,6 +93,40 @@ class LeaveApplicationCreateSerializer(serializers.Serializer):
     station_leave_contact = serializers.CharField(required=False, allow_blank=True, default="")
     submit_now = serializers.BooleanField(default=True)
 
+    def validate(self, attrs):
+        start_date = attrs.get("start_date")
+        end_date = attrs.get("end_date")
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError({
+                "start_date": "Start date must be on or before end date."
+            })
+
+        category = attrs.get("category")
+        half_day_slot = attrs.get("half_day_slot", HalfDaySlot.NONE)
+        if half_day_slot != HalfDaySlot.NONE:
+            if category != LeaveCategory.CL:
+                raise serializers.ValidationError({
+                    "half_day_slot": "Half-day leave is valid strictly for Casual Leave (CL)."
+                })
+            if start_date != end_date:
+                raise serializers.ValidationError({
+                    "half_day_slot": "Half-day leave can only be taken on a single calendar date."
+                })
+
+        if attrs.get("station_leave_applied", False):
+            address = attrs.get("station_leave_address", "")
+            contact = attrs.get("station_leave_contact", "")
+            if not address or not address.strip():
+                raise serializers.ValidationError({
+                    "station_leave_address": "Address during station leave is required."
+                })
+            if not contact or not contact.strip():
+                raise serializers.ValidationError({
+                    "station_leave_contact": "Emergency contact number during station leave is required."
+                })
+
+        return attrs
+
 
 class SubstituteResponseSerializer(serializers.Serializer):
     accept = serializers.BooleanField()

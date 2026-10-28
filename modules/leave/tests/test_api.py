@@ -68,3 +68,27 @@ def test_api_balances_and_holidays(stub_iam):
 
     holidays_res = client.get("/api/v1/leave/holidays/?year=2026")
     assert holidays_res.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_api_input_validation_and_malformed_params(stub_iam):
+    user_id = 801
+    client = auth_client(stub_iam, user_id=user_id)
+
+    # 1. Invalid year query param returns client error (400 or 422) instead of 500
+    res_bad_year = client.get("/api/v1/leave/balances/?year=invalid_year")
+    assert res_bad_year.status_code in (status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+    # 2. Inverted start_date and end_date rejected at serializer level
+    payload = {
+        "category": "CL",
+        "start_date": "2026-11-25",
+        "end_date": "2026-11-20",
+        "reason": "Test",
+    }
+    res_bad_dates = client.post(
+        "/api/v1/leave/applications/",
+        data=payload,
+        format="json",
+    )
+    assert res_bad_dates.status_code in (status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_ENTITY)

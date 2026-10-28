@@ -193,6 +193,9 @@ def cancel_approved_leave(app: LeaveApplication, actor_id: int, reason: str) -> 
     if app.status != LeaveStatus.APPROVED:
         raise ValidationError({"status": _("Only approved leaves can be cancelled.")})
 
+    if not reason or not reason.strip():
+        raise ValidationError({"reason": _("Cancellation reason is required.")})
+
     today = timezone.now().date()
     if app.start_date <= today:
         raise ValidationError({"start_date": _("Cannot cancel leave that has already commenced; use resumption instead.")})
@@ -219,6 +222,14 @@ def submit_resumption(app: LeaveApplication, actor_id: int, actual_date: date, r
         raise ValidationError({"user_id": _("Only the applicant may submit their joining report.")})
     if app.status != LeaveStatus.APPROVED:
         raise ValidationError({"status": _("Only approved leaves can have resumption submitted.")})
+    if not actual_date:
+        raise ValidationError({
+            "actual_resumption_date": _("Actual resumption date is required.")
+        })
+    if actual_date < app.start_date:
+        raise ValidationError({
+            "actual_resumption_date": _("Actual resumption date cannot be earlier than leave start date.")
+        })
 
     old_status = app.status
     app.actual_resumption_date = actual_date

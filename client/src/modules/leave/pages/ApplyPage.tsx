@@ -34,6 +34,23 @@ export default function ApplyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (startDate > endDate) {
+      setError("Start date cannot be after end date.");
+      return;
+    }
+
+    if (stationLeave) {
+      if (!stationAddress.trim()) {
+        setError("Address during station leave is required.");
+        return;
+      }
+      if (!stationContact.trim()) {
+        setError("Emergency contact number during station leave is required.");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -98,6 +115,7 @@ export default function ApplyPage() {
                 label="End Date"
                 type="date"
                 required
+                min={startDate}
                 value={endDate}
                 onChange={(e) => setEndDate(e.currentTarget.value)}
               />
